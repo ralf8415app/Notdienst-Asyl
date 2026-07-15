@@ -29,13 +29,14 @@ th{background:#dfeaf2}
 @media(max-width:520px){.grid{grid-template-columns:1fr}}
 @media print{button,.noPrint,input,select,textarea,label,.note{display:none!important}body{background:white}.card{box-shadow:none}}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header>Notdienst Asyl</header>
 <main>
 <section class="card noPrint">
 <h2>Einsatz erfassen</h2>
-<p class="note"><b>GitHub-Pages-Version:</b> in Safari öffnen und zum Home-Bildschirm hinzufügen. Einträge bleiben in der geöffneten Sitzung. Vor dem Schließen Excel erstellen.</p>
+<p class="note"><b>GitHub-Pages-Version:</b> in Safari öffnen und zum Home-Bildschirm hinzufügen. Einträge werden automatisch lokal auf diesem iPad gespeichert und bleiben nach dem Schließen erhalten.</p>
 
 <div class="grid">
 <div><label>KW <span class="req">*</span></label><input id="kw" inputmode="numeric" placeholder="z.B. 04"></div>
@@ -104,10 +105,12 @@ th{background:#dfeaf2}
 <br><br>
 <div class="grid">
 <button onclick="addEntry()">Eintrag speichern</button>
-<button class="green" onclick="exportExcel()">Excel erstellen</button>
-<button class="grey" onclick="window.print()">Drucken/PDF</button>
-<button class="red" onclick="clearEntries()">Tabelle leeren</button>
+<button class="green" onclick="exportXLSX()">Echte XLSX erstellen</button>
+<button class="grey" onclick="exportCSV()">CSV erstellen</button>
+<button class="red" onclick="clearEntries()">Alle Einträge löschen</button>
 </div>
+<br>
+<button class="grey" onclick="window.print()">Drucken/PDF</button>
 </section>
 
 <section class="card">
@@ -123,10 +126,30 @@ th{background:#dfeaf2}
 
 <script>
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
-var entries=[];
+var STORAGE_KEY="notdienst_asyl_eintraege_v3";
+var entries=loadEntries();
+var editIndex=-1;
+
+
+function loadEntries(){
+  try{
+    var raw=localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){
+    return [];
+  }
+}
+function saveEntries(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(entries));
+  }catch(e){
+    alert("Lokales Speichern ist fehlgeschlagen. Safari darf nicht im privaten Modus laufen.");
+  }
+}
 
 window.onload=function(){
   document.getElementById("datum").value=new Date().toISOString().slice(0,10);
+  render();
 };
 
 function setRole(){
@@ -169,59 +192,174 @@ function addEntry(){
   if(!validate())return;
   var obj=document.getElementById("objekt").value.split("|");
   var mit=document.getElementById("mitarbeiter").value.split("|");
-  entries.push({
+  var entry={
     kw:document.getElementById("kw").value.trim(),
-    objekt:obj[0],strasse:obj[1],
+    objekt:obj[0],
+    strasse:obj[1],
     datum:document.getElementById("datum").value,
     von:document.getElementById("von").value,
     bis:document.getElementById("bis").value,
     monteur:mit[0],
+    rolle:mit[1]||"",
     persnr:document.getElementById("persnr").value.trim(),
     std:document.getElementById("stunden").value,
     schaden:document.getElementById("schaden").value.trim()
-  });
+  };
+
+  if(editIndex>=0){
+    entries[editIndex]=entry;
+    editIndex=-1;
+    alert("Eintrag geändert.");
+  }else{
+    entries.push(entry);
+    alert("Eintrag gespeichert.");
+  }
+
+  saveEntries();
   render();
   document.getElementById("objekt").value="";
   document.getElementById("von").value="";
   document.getElementById("bis").value="";
   document.getElementById("stunden").value="";
   document.getElementById("schaden").value="";
-  alert("Eintrag gespeichert.");
 }
 function render(){
-  var body=document.querySelector("#tbl tbody");body.innerHTML="";
+  var body=document.querySelector("#tbl tbody");
+  body.innerHTML="";
   entries.forEach(function(e,idx){
     var tr=document.createElement("tr");
     ["kw","objekt","strasse","datum","von","bis","monteur","persnr","std","schaden"].forEach(function(k){
-      var td=document.createElement("td");td.textContent=e[k]||"";tr.appendChild(td);
+      var td=document.createElement("td");
+      td.textContent=e[k]||"";
+      tr.appendChild(td);
     });
-    var action=document.createElement("td");action.className="noPrint";
-    var btn=document.createElement("button");btn.className="red";btn.textContent="Löschen";
-    btn.onclick=function(){entries.splice(idx,1);render();};
-    action.appendChild(btn);tr.appendChild(action);body.appendChild(tr);
+
+    var action=document.createElement("td");
+    action.className="noPrint";
+
+    var editBtn=document.createElement("button");
+    editBtn.className="grey";
+    editBtn.textContent="Bearbeiten";
+    editBtn.style.marginBottom="5px";
+    editBtn.onclick=function(){editEntry(idx);};
+
+    var delBtn=document.createElement("button");
+    delBtn.className="red";
+    delBtn.textContent="Löschen";
+    delBtn.onclick=function(){
+      if(confirm("Diesen Eintrag löschen?")){
+        entries.splice(idx,1);
+        saveEntries();
+        render();
+      }
+    };
+
+    action.appendChild(editBtn);
+    action.appendChild(delBtn);
+    tr.appendChild(action);
+    body.appendChild(tr);
   });
+}
+
+function editEntry(idx){
+  var e=entries[idx];
+  if(!e)return;
+
+  editIndex=idx;
+  document.getElementById("kw").value=e.kw||"";
+  document.getElementById("datum").value=e.datum||"";
+  document.getElementById("von").value=e.von||"";
+  document.getElementById("bis").value=e.bis||"";
+  document.getElementById("stunden").value=e.std||"";
+  document.getElementById("persnr").value=e.persnr||"";
+  document.getElementById("schaden").value=e.schaden||"";
+  document.getElementById("objekt").value=(e.objekt||"")+"|"+(e.strasse||"");
+
+  var select=document.getElementById("mitarbeiter");
+  for(var i=0;i<select.options.length;i++){
+    if(select.options[i].value.split("|")[0]===e.monteur){
+      select.selectedIndex=i;
+      break;
+    }
+  }
+  setRole();
+  window.scrollTo({top:0,behavior:"smooth"});
+  alert("Eintrag geladen. Ändern und wieder auf Eintrag speichern drücken.");
 }
 function esc(x){return String(x||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function safeName(x){return String(x||"Datei").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_");}
-function exportExcel(){
+function exportXLSX(){
   if(entries.length===0){alert("Keine Einträge vorhanden.");return}
-  var html='<html><head><meta charset="utf-8"><style>';
-  html+='table{border-collapse:collapse;font-family:Arial;font-size:11pt}td,th{border:1px solid #777;padding:5px;vertical-align:top}th{background:#d9eaf7;font-weight:bold}.title{font-size:16pt;font-weight:bold;text-align:center;background:#d9eaf7}';
-  html+='</style></head><body><table>';
-  html+='<tr><td class="title" colspan="10">Notdienst Asyl</td></tr><tr><td colspan="10"></td></tr>';
-  html+='<tr><th>KW</th><th>Objekt</th><th>Straße</th><th>Datum</th><th>Von</th><th>Bis</th><th>Monteur</th><th>Pers.-Nr.</th><th>Std.</th><th>Schadensmeldung</th></tr>';
+  if(typeof XLSX==="undefined"){
+    alert("Die Excel-Bibliothek wurde nicht geladen. Bitte Internetverbindung prüfen oder CSV verwenden.");
+    return;
+  }
+
+  var data = [
+    ["Notdienst Asyl"],
+    [],
+    ["KW","Objekt","Straße","Datum","Von","Bis","Monteur","Pers.-Nr.","Std.","Schadensmeldung"]
+  ];
+
   entries.forEach(function(e){
-    html+='<tr><td>'+esc(e.kw)+'</td><td>'+esc(e.objekt)+'</td><td>'+esc(e.strasse)+'</td><td>'+esc(e.datum)+'</td><td>'+esc(e.von)+'</td><td>'+esc(e.bis)+'</td><td>'+esc(e.monteur)+'</td><td>'+esc(e.persnr)+'</td><td>'+esc(e.std)+'</td><td>'+esc(e.schaden).replace(/\n/g,"<br>")+'</td></tr>';
+    data.push([
+      e.kw,e.objekt,e.strasse,e.datum,e.von,e.bis,e.monteur,e.persnr,
+      Number(String(e.std).replace(",",".")),e.schaden
+    ]);
   });
-  html+='</table></body></html>';
-  var blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
-  var a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="Notdienst_Asyl_KW"+safeName(entries[0].kw)+"_"+safeName(entries[0].monteur)+".xls";
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+
+  var ws = XLSX.utils.aoa_to_sheet(data);
+  ws["!cols"] = [
+    {wch:8},{wch:10},{wch:28},{wch:12},{wch:9},
+    {wch:9},{wch:20},{wch:12},{wch:9},{wch:45}
+  ];
+  ws["!merges"] = [{s:{r:0,c:0},e:{r:0,c:9}}];
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Notdienst");
+  XLSX.writeFile(
+    wb,
+    "Notdienst_Asyl_KW"+safeName(entries[0].kw)+"_"+safeName(entries[0].monteur)+".xlsx",
+    {compression:true}
+  );
 }
+
+function csvCell(value){
+  return '"' + String(value == null ? "" : value).replace(/"/g,'""') + '"';
+}
+
+function exportCSV(){
+  if(entries.length===0){alert("Keine Einträge vorhanden.");return}
+
+  var rows = [
+    ["KW","Objekt","Straße","Datum","Von","Bis","Monteur","Pers.-Nr.","Std.","Schadensmeldung"]
+  ];
+
+  entries.forEach(function(e){
+    rows.push([e.kw,e.objekt,e.strasse,e.datum,e.von,e.bis,e.monteur,e.persnr,e.std,e.schaden]);
+  });
+
+  var csv = "\uFEFF" + rows.map(function(row){
+    return row.map(csvCell).join(";");
+  }).join("\r\n");
+
+  var blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Notdienst_Asyl_KW"+safeName(entries[0].kw)+"_"+safeName(entries[0].monteur)+".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+}
+
 function clearEntries(){
-  if(confirm("Alle Einträge aus dieser geöffneten Sitzung löschen?")){entries=[];render();}
+  if(confirm("Wirklich alle gespeicherten Einträge auf diesem iPad löschen?")){
+    entries=[];
+    editIndex=-1;
+    saveEntries();
+    render();
+  }
 }
 </script>
 </body>
