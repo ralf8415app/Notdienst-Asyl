@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Notdienst Asyl">
+<meta name="theme-color" content="#123c5a">
+<link rel="manifest" href="manifest.json">
+<title>Notdienst Asyl</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:0;background:#eef1f4;color:#111}
+header{background:#123c5a;color:white;padding:16px;text-align:center;font-size:23px;font-weight:800;position:sticky;top:0;z-index:5}
+main{max-width:1150px;margin:auto;padding:14px}
+.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #0002}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+label{font-weight:700;font-size:14px;display:block;margin-bottom:5px}
+input,select,textarea,button{font-size:17px;width:100%;box-sizing:border-box;padding:11px;border-radius:10px;border:1px solid #bbb}
+textarea{min-height:90px}
+button{border:0;background:#123c5a;color:white;font-weight:800}
+button.green{background:#1b6e3c}button.red{background:#9b1d1d}button.grey{background:#666}
+table{width:100%;border-collapse:collapse;background:white;font-size:14px}
+th,td{border:1px solid #bbb;padding:7px;vertical-align:top}
+th{background:#dfeaf2}
+.req{color:#b00020}.error{border:2px solid #b00020!important;background:#fff0f0!important}
+.note{font-size:14px;color:#444;line-height:1.45}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+@media print{button,.noPrint,input,select,textarea,label,.note{display:none!important}body{background:white}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+<header>Notdienst Asyl</header>
+<main>
+<section class="card noPrint">
+<h2>Einsatz erfassen</h2>
+<p class="note"><b>GitHub-Pages-Version:</b> in Safari öffnen und zum Home-Bildschirm hinzufügen. Einträge bleiben in der geöffneten Sitzung. Vor dem Schließen Excel erstellen.</p>
+
+<div class="grid">
+<div><label>KW <span class="req">*</span></label><input id="kw" inputmode="numeric" placeholder="z.B. 04"></div>
+<div><label>Datum <span class="req">*</span></label><input id="datum" type="date"></div>
+<div><label>Von <span class="req">*</span></label><input id="von" type="time" oninput="calcHours()"></div>
+<div><label>Bis <span class="req">*</span></label><input id="bis" type="time" oninput="calcHours()"></div>
+<div><label>Std.</label><input id="stunden" readonly></div>
+<div><label>Mitarbeiter <span class="req">*</span></label>
+<select id="mitarbeiter" onchange="setRole()">
+<option value="">Bitte auswählen</option>
+<option value="Günter Wendling|Hausmeister">Günter Wendling</option>
+<option value="Eugen Kalaschnikow|Hausmeister">Eugen Kalaschnikow</option>
+<option value="Salvatore Capone|Springer">Salvatore Capone</option>
+<option value="Ralf Jung|Teamleitung">Ralf Jung</option>
+</select></div>
+<div><label>Rolle</label><input id="rolle" readonly></div>
+<div><label>Pers.-Nr.</label><input id="persnr" placeholder="optional"></div>
+</div>
+
+<br>
+<label>Objekt / Straße <span class="req">*</span></label>
+<select id="objekt">
+<option value="">Bitte auswählen</option>
+<option value="4003|Bretzenheimer Str.">4003 – Bretzenheimer Str.</option>
+<option value="4007|Alte Ziegelei">4007 – Alte Ziegelei</option>
+<option value="4008|Ludwigsb. Str.">4008 – Ludwigsb. Str.</option>
+<option value="4009|Zwerchallee 14/16">4009 – Zwerchallee 14/16</option>
+<option value="4010|Wilh.-Quetsch">4010 – Wilh.-Quetsch</option>
+<option value="4011|Wormser Straße 187">4011 – Wormser Straße 187</option>
+<option value="4013|Zwerchallee 8–12 und 18–20">4013 – Zwerchallee 8–12 und 18–20</option>
+<option value="4014|Housing Area">4014 – Housing Area</option>
+<option value="4020|Allianzhaus">4020 – Allianzhaus</option>
+<option value="4024|Hotel Alt Finthen">4024 – Hotel Alt Finthen</option>
+<option value="4025|Hotel Draiser Hof">4025 – Hotel Draiser Hof</option>
+<option value="4026|Heiligkreuzweg">4026 – Heiligkreuzweg</option>
+<option value="4027|Hechtsheimer Str.">4027 – Hechtsheimer Str.</option>
+<option value="4028|Isaac-Fulda">4028 – Isaac-Fulda</option>
+<option value="4029|Layenhof">4029 – Layenhof</option>
+<option value="4030|Bahnhofstr.">4030 – Bahnhofstr.</option>
+<option value="4031|Nikolaus-Kopernikus">4031 – Nikolaus-Kopernikus</option>
+<option value="4032|Zitadelle">4032 – Zitadelle</option>
+<option value="4033|Layenhof 2">4033 – Layenhof 2</option>
+</select>
+
+<br><br>
+<label>Textbaustein</label>
+<select id="baustein" onchange="insertBlock()">
+<option value="">Bitte auswählen</option>
+<option>Leckage beseitigt</option>
+<option>Verstopfung beseitigt</option>
+<option>Siphon gereinigt</option>
+<option>Armatur erneuert</option>
+<option>Dichtung erneuert</option>
+<option>Kein Schaden feststellbar</option>
+<option>Weitere Arbeiten erforderlich</option>
+<option>Ersatzteil bestellt</option>
+<option>WC instandgesetzt</option>
+<option>Heizung entlüftet</option>
+<option>Notdienst abgeschlossen</option>
+</select>
+
+<br><br>
+<label>Schadensmeldung <span class="req">*</span></label>
+<textarea id="schaden"></textarea>
+
+<br><br>
+<div class="grid">
+<button onclick="addEntry()">Eintrag speichern</button>
+<button class="green" onclick="exportExcel()">Excel erstellen</button>
+<button class="grey" onclick="window.print()">Drucken/PDF</button>
+<button class="red" onclick="clearEntries()">Tabelle leeren</button>
+</div>
+</section>
+
+<section class="card">
+<h2>Gespeicherte Einträge</h2>
+<table id="tbl">
+<thead><tr>
+<th>KW</th><th>Objekt</th><th>Straße</th><th>Datum</th><th>Von</th><th>Bis</th><th>Monteur</th><th>Pers.-Nr.</th><th>Std.</th><th>Schadensmeldung</th><th class="noPrint">Aktion</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</section>
+</main>
+
+<script>
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+var entries=[];
+
+window.onload=function(){
+  document.getElementById("datum").value=new Date().toISOString().slice(0,10);
+};
+
+function setRole(){
+  var m=document.getElementById("mitarbeiter").value.split("|");
+  document.getElementById("rolle").value=m[1]||"";
+}
+function insertBlock(){
+  var b=document.getElementById("baustein"),s=document.getElementById("schaden");
+  if(!b.value)return;
+  s.value=s.value?s.value+"\n"+b.value:b.value;
+  b.value="";
+}
+function calcHours(){
+  var von=document.getElementById("von").value,bis=document.getElementById("bis").value,out=document.getElementById("stunden");
+  if(!von||!bis){out.value="";return}
+  var a=von.split(":").map(Number),b=bis.split(":").map(Number);
+  var start=a[0]*60+a[1],end=b[0]*60+b[1];
+  if(end<start)end+=1440;
+  var diff=(end-start)/60;
+  if(diff<=0||diff>24){out.value="";return}
+  out.value=diff.toFixed(2).replace(".",",");
+}
+function mark(id,ok){
+  var el=document.getElementById(id);
+  if(ok)el.classList.remove("error");else el.classList.add("error");
+}
+function validate(){
+  calcHours();
+  var ok=true;
+  ["kw","datum","von","bis","mitarbeiter","objekt","schaden"].forEach(function(id){
+    var good=!!String(document.getElementById(id).value||"").trim();
+    mark(id,good);if(!good)ok=false;
+  });
+  var goodHours=!!document.getElementById("stunden").value;
+  mark("stunden",goodHours);if(!goodHours)ok=false;
+  if(!ok)alert("Bitte alle Pflichtfelder ausfüllen.");
+  return ok;
+}
+function addEntry(){
+  if(!validate())return;
+  var obj=document.getElementById("objekt").value.split("|");
+  var mit=document.getElementById("mitarbeiter").value.split("|");
+  entries.push({
+    kw:document.getElementById("kw").value.trim(),
+    objekt:obj[0],strasse:obj[1],
+    datum:document.getElementById("datum").value,
+    von:document.getElementById("von").value,
+    bis:document.getElementById("bis").value,
+    monteur:mit[0],
+    persnr:document.getElementById("persnr").value.trim(),
+    std:document.getElementById("stunden").value,
+    schaden:document.getElementById("schaden").value.trim()
+  });
+  render();
+  document.getElementById("objekt").value="";
+  document.getElementById("von").value="";
+  document.getElementById("bis").value="";
+  document.getElementById("stunden").value="";
+  document.getElementById("schaden").value="";
+  alert("Eintrag gespeichert.");
+}
+function render(){
+  var body=document.querySelector("#tbl tbody");body.innerHTML="";
+  entries.forEach(function(e,idx){
+    var tr=document.createElement("tr");
+    ["kw","objekt","strasse","datum","von","bis","monteur","persnr","std","schaden"].forEach(function(k){
+      var td=document.createElement("td");td.textContent=e[k]||"";tr.appendChild(td);
+    });
+    var action=document.createElement("td");action.className="noPrint";
+    var btn=document.createElement("button");btn.className="red";btn.textContent="Löschen";
+    btn.onclick=function(){entries.splice(idx,1);render();};
+    action.appendChild(btn);tr.appendChild(action);body.appendChild(tr);
+  });
+}
+function esc(x){return String(x||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function safeName(x){return String(x||"Datei").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_");}
+function exportExcel(){
+  if(entries.length===0){alert("Keine Einträge vorhanden.");return}
+  var html='<html><head><meta charset="utf-8"><style>';
+  html+='table{border-collapse:collapse;font-family:Arial;font-size:11pt}td,th{border:1px solid #777;padding:5px;vertical-align:top}th{background:#d9eaf7;font-weight:bold}.title{font-size:16pt;font-weight:bold;text-align:center;background:#d9eaf7}';
+  html+='</style></head><body><table>';
+  html+='<tr><td class="title" colspan="10">Notdienst Asyl</td></tr><tr><td colspan="10"></td></tr>';
+  html+='<tr><th>KW</th><th>Objekt</th><th>Straße</th><th>Datum</th><th>Von</th><th>Bis</th><th>Monteur</th><th>Pers.-Nr.</th><th>Std.</th><th>Schadensmeldung</th></tr>';
+  entries.forEach(function(e){
+    html+='<tr><td>'+esc(e.kw)+'</td><td>'+esc(e.objekt)+'</td><td>'+esc(e.strasse)+'</td><td>'+esc(e.datum)+'</td><td>'+esc(e.von)+'</td><td>'+esc(e.bis)+'</td><td>'+esc(e.monteur)+'</td><td>'+esc(e.persnr)+'</td><td>'+esc(e.std)+'</td><td>'+esc(e.schaden).replace(/\n/g,"<br>")+'</td></tr>';
+  });
+  html+='</table></body></html>';
+  var blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="Notdienst_Asyl_KW"+safeName(entries[0].kw)+"_"+safeName(entries[0].monteur)+".xls";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function clearEntries(){
+  if(confirm("Alle Einträge aus dieser geöffneten Sitzung löschen?")){entries=[];render();}
+}
+</script>
+</body>
+</html>

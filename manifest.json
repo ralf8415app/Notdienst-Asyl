@@ -1,0 +1,10 @@
+{
+  "name": "Notdienst Asyl",
+  "short_name": "Notdienst",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1f4",
+  "theme_color": "#123c5a",
+  "icons": []
+}
